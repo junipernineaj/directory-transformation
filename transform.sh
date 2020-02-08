@@ -2,187 +2,167 @@
 OIFS="$IFS"
 IFS=$'\n'
 
-LOGDATETIMESTAMP=`date "+%Y%m%d%H%M%S"`
+LOGDATETIMESTAMP=`date "+%Y%m%d-%H%M%S"`
 LOGFILE=./$LOGDATETIMESTAMP-logfile.txt
+DATASET=$1
 
-if [ $2 == "On" ]
+if [ ! $2 == "Off" ]
 then
 DEBUG=On
 else
 DEBUG=Off
 fi 
 
-##
-
-echo "Dataset is:" "$1" | tee -a $LOGFILE
-echo "----------------" | tee -a $LOGFILE
-
-##Count the total number of XMLs in the dataset before transforming it
-
-PROCESSEDXMLCOUNTER=`expr 0 + 0`
-DATASETXMLCOUNT=`find $1 -name "*.xml" -print0 | xargs -0 ls | wc -l | sed s/" "//g`
-
-echo "XMLs in $1 dataset: $DATASETXMLCOUNT" | tee -a $LOGFILE
-echo "--------------------------------" | tee -a $LOGFILE
 
 
+logging () {
 
-##Iterate through the Countries in a dataset
+MESSAGE=$1
+echo $LOGDATETIMESTAMP - "$MESSAGE" | tee -a $LOGFILE
+}
 
-for COUNTRY in `ls $1`
+debugging () {
+
+MESSAGE=$1
+
+if [ $DEBUG == "On" ]
+then
+	echo $LOGDATETIMESTAMP - "$MESSAGE" | tee -a $LOGFILE
+else
+	echo $LOGDATETIMESTAMP - "$MESSAGE" >> $LOGFILE
+fi
+}
+
+
+find_subcompany () {
+
+##Look for any SubCompanies in a dataset
+
+ls "$DATASET/$COUNTRY/$COMPANY" | grep -v 20[0-9][0-9]-[0-9][0-9] &>/dev/null
+
+if [ $? -eq 0 ]
+then
+	debugging "SubCompany(s) found under $COMPANY"
+
+## Create an array of SubCompanies
+## And iterate through the SubCompanies within each Company
+
+	SUBCOMPANIES=`ls $DATASET/"$COUNTRY"/"$COMPANY" 2>/dev/null`
+
+	for SUBCOMPANY in `echo "$SUBCOMPANIES"`
+	do
+		FULLCOMPANYPATH="$DATASET/$COUNTRY/$COMPANY/$SUBCOMPANY"
+		SUBCOMPANYXMLCOUNT=`find "$DATASET/$COUNTRY/$COMPANY/$SUBCOMPANY" -name "*.xml" -print0 | xargs -0 ls | wc -l | sed s/" "//g`
+
+		debugging "SubCompany is: $SUBCOMPANY"
+		debugging "Full Company Path is now: $FULLCOMPANYPATH"
+		logging "XML count for SubCompany: $SUBCOMPANY  is: $SUBCOMPANYXMLCOUNT"
+
+	##find_subsubcompany
+
+	done
+
+else	
+	debugging "No SubCompany(s) found under $COMPANY"
+fi
+
+##End of --find_subcompany--
+}
+
+
+
+find_company () {
+
+##Look for any Companies in a dataset
+
+ls "$DATASET/$COUNTRY" | grep -v 20[0-9][0-9]-[0-9][0-9] &>/dev/null
+
+if [ $? -eq 0 ]
+then
+	debugging "First Level Company(s) found under $COUNTRY"
+
+## Create an array of Companies
+## And iterate through the Companies within each Country
+
+	COMPANIES=`ls $DATASET/"$COUNTRY" 2>/dev/null`
+
+	for COMPANY in `echo "$COMPANIES"`
+	do
+		FULLCOMPANYPATH="$DATASET/$COUNTRY/$COMPANY"
+		COMPANYXMLCOUNT=`find "$DATASET/$COUNTRY/$COMPANY" -name "*.xml" -print0 | xargs -0 ls | wc -l | sed s/" "//g`
+
+		debugging "Company is: $COMPANY"
+		debugging "Full Company Path is: $FULLCOMPANYPATH"
+		debugging "XML count for Company: $COMPANY  is: $COMPANYXMLCOUNT"
+
+	 	if [ ! -d "$DATASET/partition_country=$COUNTRY/partition_company=$COMPANY" ]
+		then
+		NEWCOMPANY="partition_company=$COMPANY"
+
+		debugging "Creating new Company Directory: $DATASET/$NEWCOUNTRY/$NEWCOMPANY"
+
+		mkdir "$DATASET/$NEWCOUNTRY/$NEWCOMPANY"
+		fi
+
+	find_subcompany
+
+	done
+
+else	
+	debugging "No Company(s) found under $COUNTRY"
+fi
+
+##End of --find_company--
+}
+
+find_country () {
+
+##Look for any Countries in a dataset
+
+for COUNTRY in `ls $DATASET`
 do
+	debugging "Country is: $COUNTRY"
 
-COUNTRYXMLCOUNT=`find "$1/$COUNTRY" -name "*.xml" -print0 | xargs -0 ls | wc -l | sed s/" "//g`
-FULLCOUNTRYPATH="$1/$COUNTRY"
+	COUNTRYXMLCOUNT=`find "$DATASET/$COUNTRY" -name "*.xml" -print0 | xargs -0 ls | wc -l | sed s/" "//g`
+	FULLCOUNTRYPATH="$DATASET/$COUNTRY"
 
 	if [ $COUNTRYXMLCOUNT -gt 0 ]
 	then
-  	echo "XML count for Country: $COUNTRY is:" "$COUNTRYXMLCOUNT" | tee -a $LOGFILE
-	echo "Full Country Path is: $FULLCOUNTRYPATH"
+  		logging "XML count for Country: $COUNTRY is: $COUNTRYXMLCOUNT"
+		debugging "Full Country Path is: $FULLCOUNTRYPATH"
 
 	 	if [ ! -d "$1/partition_country=$COUNTRY" ]
 		then
 		NEWCOUNTRY="partition_country=$COUNTRY"
 
-		if [ $DEBUG == "On" ]
-		then
-		echo Creating new Country Directory: "$NEWCOUNTRY" | tee -a $LOGFILE
-		fi
+		debugging "Creating new Country Directory: $DATASET/$NEWCOUNTRY"
 
-		mkdir "$1/$NEWCOUNTRY"
+		mkdir "$DATASET/$NEWCOUNTRY"
+
+		find_company
 		fi
 	else
 
-	echo "Country: $COUNTRY has no XMLs - deleting it" | tee -a $LOGFILE		
-	rm -rf $FULLCOUNTRYPATH
-	
+		logging "Country: $COUNTRY has no XMLs - deleting it"
+		rm -rf $FULLCOUNTRYPATH
 	fi
-
-if [ $DEBUG == "On" ]
-then
-echo "Country is:" "$COUNTRY" | tee -a $LOGFILE
-fi
-
-COMPANIES=`ls $1/"$COUNTRY" 2>/dev/null`
-
-##Iterate through the Companies within each Country
-
-	for COMPANY in `echo "$COMPANIES"`
-	do
-
-	if [ $DEBUG == "On" ]
-	then
-	FULLCOMPANYPATH="$1/$COUNTRY/$COMPANY"
- 	COMPANYXMLCOUNT=`find "$1/$COUNTRY/$COMPANY" -name "*.xml" -print0 | xargs -0 ls | wc -l | sed s/" "//g`
-	echo "Company is:" "$COMPANY" | tee -a $LOGFILE
-	echo "Full Company Path is:" "$FULLCOMPANYPATH" | tee -a $LOGFILE
-	echo "XML count for Company: $COMPANY  is:" "$COMPANYXMLCOUNT" | tee -a $LOGFILE
-	fi
-
-	SUBCOMPANIES=`ls $1/"$COUNTRY"/"$COMPANY" | grep -v 20[0-9][0-9]-[0-9][0-9]`
-
-##Iterate through the Sub-Companies within each Country/Company combination
-
-		for SUBCOMPANY in `echo "$SUBCOMPANIES"`
-		do
-
-		if [ $DEBUG == "On" ]
-		then
-		echo "Sub-Company is:" "$SUBCOMPANY" | tee -a $LOGFILE
- 	 	SUBCOMPANYXMLCOUNT=`find "$1/$COUNTRY/$COMPANY/$SUBCOMPANY" -name "*.xml" -print0 | xargs -0 ls | wc -l | sed s/" "//g`
-		echo "XML count for Sub-Company: $SUBCOMPANY is:" "$SUBCOMPANYXMLCOUNT" | tee -a $LOGFILE
-		fi
-
-
-		if [ ! -d "$1/partition_country=$COUNTRY/partition_company=${COMPANY}_${SUBCOMPANY}" ]
-		then
-
-		NEWCOMPANY="partition_company=${COMPANY}_${SUBCOMPANY}"
-
-			if [ $DEBUG == "On" ]
-			then
-			echo Creating new hybrid Company Directory: "$NEWCOMPANY" | tee -a $LOGFILE
-			echo New hybrid Full Directory: "$1/$NEWCOUNTRY/$NEWCOMPANY" | tee -a $LOGFILE
-			fi
-
-		mkdir "$1/$NEWCOUNTRY/$NEWCOMPANY"
-		fi
-
-##Report the full path of Country, Company and Sub-Company
-
-		FULLDIRECTORYPATH="$1/$COUNTRY/$COMPANY/$SUBCOMPANY"
-
-			if [ $DEBUG == "On" ]
-			then
-			echo "Full Directory path is: $FULLDIRECTORYPATH" | tee -a $LOGFILE
-			fi
-
-##List the contents of the Full directory path
-
-			if [ $DEBUG == "On" ]
-			then
-			echo "Iterating through the directory contents"
-			ls -d $FULLDIRECTORYPATH/* 2>/dev/null
-
-				if [ $? -ne 0 ]
-				then
-				echo "There are no Directories below $FULLDIRECTORYPATH/" | tee -a $LOGFILE
-				fi
-			fi
-
-			for DIRECTORY in `ls -d $FULLDIRECTORYPATH/* 2>/dev/null`
-			do
-				if [ $DEBUG == "On" ]
-				then
-				echo Directory of XMLs is: "$DIRECTORY" | tee -a $LOGFILE
-				XMLCOUNT=`ls $DIRECTORY | wc -l | sed s/" "//g`
-				echo "Number of XML files in the $DIRECTORY are: $XMLCOUNT" | tee -a $LOGFILE
-				echo "." | tee -a $LOGFILE
-				fi
-
-## Now we will move the XMLs to the correct directory structure for upload to the Staging Environment
-
-				for XML in `ls $DIRECTORY/*xml`
-				do
-
-				FULLDIRECTORYPATH="$1/$COUNTRY/$COMPANY/$SUBCOMPANY"
-				NEWDIRECTORYPATH="$1/$NEWCOUNTRY/$NEWCOMPANY"
-
-				PROCESSEDXMLCOUNTER=`expr $PROCESSEDXMLCOUNTER + 1`
-
-					if [ $DEBUG == "On" ]
-					then
-					echo Moving XML \("$PROCESSEDXMLCOUNTER" of "$DATASETXMLCOUNT"\): "$XML" to "$NEWDIRECTORYPATH" | tee -a $LOGFILE
-					fi
-
-				mv -n "$XML" "$NEWDIRECTORYPATH"				
-				done
-			done
-		done
-
-  	if [ $DEBUG == "On" ]
-	then
- 	NEWCOMPANYXMLCOUNT=`find "$1/$NEWCOUNTRY/$NEWCOMPANY" -name "*.xml" -print0 | xargs -0 ls | wc -l | sed s/" "//g`
-	echo "XML count for newly structured company: $NEWCOMPANY  is:" "$NEWCOMPANYXMLCOUNT" | tee -a $LOGFILE
-	fi
-
-	done
-
-NEWCOUNTRYXMLCOUNT=`find "$1/$NEWCOUNTRY" -name "*.xml" -print0 | xargs -0 ls | wc -l | sed s/" "//g`
-echo "XML count for newly structured country: $NEWCOUNTRY  is:" "$NEWCOUNTRYXMLCOUNT" | tee -a $LOGFILE
-
 done
 
-NEWDATASETXMLCOUNT=`find $1 -name "*.xml" -print0 | xargs -0 ls | wc -l | sed s/" "//g`
-echo "XMLs in reformatted dataset: $NEWDATASETXMLCOUNT" | tee -a $LOGFILE
-echo "--------------------------------" | tee -a $LOGFILE
+##End of --find_country--
+}
 
-DELTA=`expr $DATASETXMLCOUNT - $NEWDATASETXMLCOUNT`
+##
 
-if [ $DELTA -eq 0 ]
-then
-echo "Dataset restructured - no dataloss"
-else
-echo "Dataset restructured - DATALOSS"
-fi
+logging "Dataset is: $DATASET"
+logging "------------------------"
 
+##Count the total number of XMLs in the dataset before transforming it
+
+PROCESSEDXMLCOUNTER=`expr 0 + 0`
+DATASETXMLCOUNT=`find $DATASET -name "*.xml" -print0 | xargs -0 ls | wc -l | sed s/" "//g`
+
+logging "XMLs in $DATASET dataset: $DATASETXMLCOUNT"
+logging "------------------------------------------"
+
+
+find_country
