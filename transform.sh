@@ -17,8 +17,9 @@ fi
 
 logging () {
 
+DATETIMESTAMP=`date "+%Y%m%d-%H%M%S"`
 MESSAGE=$1
-echo $LOGDATETIMESTAMP - "$MESSAGE" | tee -a $LOGFILE
+echo $DATETIMESTAMP - "$MESSAGE" | tee -a $LOGFILE
 }
 
 debugging () {
@@ -80,6 +81,7 @@ then
 
 	NEWCOMPANY="partition_company=${COMPANY}_${SUBCOMPANY}_${SUBSUBCOMPANY}/${SUBSUBSUBCOMPANY}"
 	debugging "NewCompany is: $NEWCOMPANY"
+	mkdir "$DATASET/$NEWCOUNTRY/$NEWCOMPANY"
 	BOTTOMDIRECTORY="${FULLSUBSUBSUBCOMPANYPATH}"
 	move_XMLs
 
@@ -88,7 +90,8 @@ then
 else
 	debugging "No SubSubCompany(s) found under $SUBCOMPANY"
 	NEWCOMPANY="partition_company=${COMPANY}_${SUBCOMPANY}_${SUBSUBCOMPANY}"
-	debugging "Creating new Company Directory: $DATASET/$NEWCOUNTRY/$NEWCOMPANY"
+	debugging "I would create Company Directory: $DATASET/$NEWCOUNTRY/$NEWCOMPANY"
+	mkdir "$DATASET/$NEWCOUNTRY/$NEWCOMPANY"
 	BOTTOMDIRECTORY="${FULLSUBSUBCOMPANYPATH}"
 	move_XMLs
 fi
@@ -127,7 +130,8 @@ then
 else
 	debugging "No SubSubCompany(s) found under $SUBCOMPANY"
 	NEWCOMPANY="partition_company=${COMPANY}_${SUBCOMPANY}"
-	debugging "Creating new Company Directory: $DATASET/$NEWCOUNTRY/$NEWCOMPANY"
+	debugging "I would create Company Directory: $DATASET/$NEWCOUNTRY/$NEWCOMPANY"
+	mkdir "$DATASET/$NEWCOUNTRY/$NEWCOMPANY"
 	BOTTOMDIRECTORY="${FULLSUBCOMPANYPATH}"
 	move_XMLs
 fi
@@ -167,7 +171,8 @@ then
 else	
 	debugging "No SubCompany(s) found under $COMPANY"
 	NEWCOMPANY="partition_company=${COMPANY}"
-	debugging "Creating new Company Directory: $DATASET/$NEWCOUNTRY/$NEWCOMPANY"
+	debugging "I would create Company Directory: $DATASET/$NEWCOUNTRY/$NEWCOMPANY"
+	mkdir "$DATASET/$NEWCOUNTRY/$NEWCOMPANY"
 	BOTTOMDIRECTORY="${FULLCOMPANYPATH}"
 	move_XMLs
 fi
@@ -204,9 +209,6 @@ then
 	 	if [ ! -d "$DATASET/partition_country=$COUNTRY/partition_company=$COMPANY" ]
 		then
 		NEWCOMPANY="partition_company=$COMPANY"
-
-
-		mkdir "$DATASET/$NEWCOUNTRY/$NEWCOMPANY"
 		fi
 
 	find_subcompany
