@@ -33,6 +33,83 @@ else
 fi
 }
 
+find_subsubsubcompany () {
+
+##Look for any SubSubSubCompanies in a dataset
+
+ls "$DATASET/$COUNTRY/$COMPANY/$SUBCOMPANY/$SUBSUBCOMPANY" | grep -v 20[0-9][0-9]-[0-9][0-9] &>/dev/null
+
+if [ $? -eq 0 ]
+then
+	debugging "SubSubSubCompany(s) found under $SUBSUBCOMPANY"
+
+## Create an array of SubSubSubCompanies
+## And iterate through the SubSubSubCompanies within each Company
+
+	SUBSUBSUBCOMPANIES=`ls $DATASET/"$COUNTRY"/"$COMPANY"/"$SUBCOMPANY"/$SUBSUBCOMPANY 2>/dev/null`
+
+	for SUBSUBSUBCOMPANY in `echo "$SUBSUBSUBCOMPANIES"`
+	do
+		FULLSUBSUBSUBCOMPANYPATH="$DATASET/$COUNTRY/$COMPANY/$SUBCOMPANY/$SUBSUBCOMPANY/$SUBSUBSUBCOMPANY"
+		SUBSUBSUBCOMPANYXMLCOUNT=`find "$DATASET/$COUNTRY/$COMPANY/$SUBCOMPANY/$SUBSUBCOMPANY"/$SUBSUBSUBCOMPANY -name "*.xml" -print0 | xargs -0 ls | wc -l | sed s/" "//g`
+
+		debugging "SubSubSubCompany is: $SUBSUBSUBCOMPANY"
+		debugging "Full SubSubSubCompany Path is now: $FULLSUBSUBSUBCOMPANYPATH"
+		logging "XML count for SubSubSubCompany: $SUBSUBSUBCOMPANY  is: $SUBSUBSUBCOMPANYXMLCOUNT"
+
+	NEWCOMPANY="partition_company=$COMPANY_$SUBCOMPANY_$SUBSUBCOMPANY/$SUBSUBSUBCOMPANY"
+	debugging "NewCompany is: $NEWCOMPANY"
+	echo "WILL WE EVER GET HERE!!!"
+	sleep 10
+
+	done
+
+else
+	debugging "No SubSubCompany(s) found under $SUBCOMPANY"
+	NEWCOMPANY="partition_company=${COMPANY}_${SUBCOMPANY}_${SUBSUBCOMPANY}"
+	debugging "Creating new Company Directory: $DATASET/$NEWCOUNTRY/$NEWCOMPANY"
+fi
+
+##End of --find_subsubsubcompany--
+}
+
+find_subsubcompany () {
+
+##Look for any SubSubCompanies in a dataset
+
+ls "$DATASET/$COUNTRY/$COMPANY/$SUBCOMPANY" | grep -v 20[0-9][0-9]-[0-9][0-9] &>/dev/null
+
+if [ $? -eq 0 ]
+then
+	debugging "SubSubCompany(s) found under $SUBCOMPANY"
+
+## Create an array of SubSubCompanies
+## And iterate through the SubSubCompanies within each Company
+
+	SUBSUBCOMPANIES=`ls $DATASET/"$COUNTRY"/"$COMPANY"/"$SUBCOMPANY" 2>/dev/null`
+
+	for SUBSUBCOMPANY in `echo "$SUBSUBCOMPANIES"`
+	do
+		FULLSUBSUBCOMPANYPATH="$DATASET/$COUNTRY/$COMPANY/$SUBCOMPANY/$SUBSUBCOMPANY"
+		SUBSUBCOMPANYXMLCOUNT=`find "$DATASET/$COUNTRY/$COMPANY/$SUBCOMPANY/$SUBSUBCOMPANY" -name "*.xml" -print0 | xargs -0 ls | wc -l | sed s/" "//g`
+
+		debugging "SubSubCompany is: $SUBSUBCOMPANY"
+		debugging "Full SubSubCompany Path is now: $FULLSUBSUBCOMPANYPATH"
+		logging "XML count for SubSubCompany: $SUBSUBCOMPANY  is: $SUBSUBCOMPANYXMLCOUNT"
+
+	find_subsubsubcompany
+
+	done
+
+else
+	debugging "No SubSubCompany(s) found under $SUBCOMPANY"
+	NEWCOMPANY="partition_company=${COMPANY}_${SUBCOMPANY}"
+	debugging "Creating new Company Directory: $DATASET/$NEWCOUNTRY/$NEWCOMPANY"
+fi
+
+##End of --find_subsubcompany--
+}
+
 
 find_subcompany () {
 
@@ -51,19 +128,21 @@ then
 
 	for SUBCOMPANY in `echo "$SUBCOMPANIES"`
 	do
-		FULLCOMPANYPATH="$DATASET/$COUNTRY/$COMPANY/$SUBCOMPANY"
+		FULLSUBCOMPANYPATH="$DATASET/$COUNTRY/$COMPANY/$SUBCOMPANY"
 		SUBCOMPANYXMLCOUNT=`find "$DATASET/$COUNTRY/$COMPANY/$SUBCOMPANY" -name "*.xml" -print0 | xargs -0 ls | wc -l | sed s/" "//g`
 
 		debugging "SubCompany is: $SUBCOMPANY"
-		debugging "Full Company Path is now: $FULLCOMPANYPATH"
+		debugging "Full SubCompany Path is now: $FULLSUBCOMPANYPATH"
 		logging "XML count for SubCompany: $SUBCOMPANY  is: $SUBCOMPANYXMLCOUNT"
 
-	##find_subsubcompany
+	find_subsubcompany
 
 	done
 
 else	
 	debugging "No SubCompany(s) found under $COMPANY"
+	NEWCOMPANY="partition_company=${COMPANY}"
+	debugging "Creating new Company Directory: $DATASET/$NEWCOUNTRY/$NEWCOMPANY"
 fi
 
 ##End of --find_subcompany--
@@ -99,7 +178,6 @@ then
 		then
 		NEWCOMPANY="partition_company=$COMPANY"
 
-		debugging "Creating new Company Directory: $DATASET/$NEWCOUNTRY/$NEWCOMPANY"
 
 		mkdir "$DATASET/$NEWCOUNTRY/$NEWCOMPANY"
 		fi
