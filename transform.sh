@@ -33,6 +33,26 @@ else
 fi
 }
 
+move_XMLs () {
+
+#Start moving the XMLs
+
+logging "Bottom Path is: $BOTTOMDIRECTORY"
+logging "New Company directory is: $DATASET/$NEWCOUNTRY/$NEWCOMPANY"
+
+for XMLDIRECTORY in `ls -d $BOTTOMDIRECTORY/*`
+do
+    debugging "XMLDIRECTORY is: $XMLDIRECTORY"
+
+    for XML in `ls $XMLDIRECTORY/*xml`
+    do
+        PROCESSEDXMLCOUNTER=`expr $PROCESSEDXMLCOUNTER + 1`
+        debugging "$PROCESSEDXMLCOUNTER of $DATASETXMLCOUNT - Moving $XML to $DATASET/$NEWCOUNTRY/$NEWCOMPANY"
+        mv -n "$XML" "$DATASET/$NEWCOUNTRY/$NEWCOMPANY"
+    done
+done
+}
+
 find_subsubsubcompany () {
 
 ##Look for any SubSubSubCompanies in a dataset
@@ -57,10 +77,10 @@ then
 		debugging "Full SubSubSubCompany Path is now: $FULLSUBSUBSUBCOMPANYPATH"
 		logging "XML count for SubSubSubCompany: $SUBSUBSUBCOMPANY  is: $SUBSUBSUBCOMPANYXMLCOUNT"
 
-	NEWCOMPANY="partition_company=$COMPANY_$SUBCOMPANY_$SUBSUBCOMPANY/$SUBSUBSUBCOMPANY"
+	NEWCOMPANY="partition_company=${COMPANY}_${SUBCOMPANY}_${SUBSUBCOMPANY}/${SUBSUBSUBCOMPANY}"
 	debugging "NewCompany is: $NEWCOMPANY"
-	echo "WILL WE EVER GET HERE!!!"
-	sleep 10
+	BOTTOMDIRECTORY="${FULLSUBSUBSUBCOMPANYPATH}"
+	move_XMLs
 
 	done
 
@@ -68,6 +88,8 @@ else
 	debugging "No SubSubCompany(s) found under $SUBCOMPANY"
 	NEWCOMPANY="partition_company=${COMPANY}_${SUBCOMPANY}_${SUBSUBCOMPANY}"
 	debugging "Creating new Company Directory: $DATASET/$NEWCOUNTRY/$NEWCOMPANY"
+	BOTTOMDIRECTORY="${FULLSUBSUBCOMPANYPATH}"
+	move_XMLs
 fi
 
 ##End of --find_subsubsubcompany--
@@ -105,6 +127,8 @@ else
 	debugging "No SubSubCompany(s) found under $SUBCOMPANY"
 	NEWCOMPANY="partition_company=${COMPANY}_${SUBCOMPANY}"
 	debugging "Creating new Company Directory: $DATASET/$NEWCOUNTRY/$NEWCOMPANY"
+	BOTTOMDIRECTORY="${FULLSUBCOMPANYPATH}"
+	move_XMLs
 fi
 
 ##End of --find_subsubcompany--
@@ -143,6 +167,8 @@ else
 	debugging "No SubCompany(s) found under $COMPANY"
 	NEWCOMPANY="partition_company=${COMPANY}"
 	debugging "Creating new Company Directory: $DATASET/$NEWCOUNTRY/$NEWCOMPANY"
+	BOTTOMDIRECTORY="${FULLCOMPANYPATH}"
+	move_XMLs
 fi
 
 ##End of --find_subcompany--
