@@ -23,13 +23,14 @@ echo $LOGDATETIMESTAMP - "$MESSAGE" | tee -a $LOGFILE
 
 debugging () {
 
+DATETIMESTAMP=`date "+%Y%m%d-%H%M%S"`
 MESSAGE=$1
 
 if [ $DEBUG == "On" ]
 then
-	echo $LOGDATETIMESTAMP - "$MESSAGE" | tee -a $LOGFILE
+	echo $DATETIMESTAMP - "$MESSAGE" | tee -a $LOGFILE
 else
-	echo $LOGDATETIMESTAMP - "$MESSAGE" >> $LOGFILE
+	echo $DATETIMESTAMP - "$MESSAGE" >> $LOGFILE
 fi
 }
 
