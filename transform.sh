@@ -35,35 +35,57 @@ else
 fi
 }
 
-move_XMLs () {
 
-#Start moving the XMLs
+cleanUpXMLdir () {
 
-logging "Bottom Path is: $BOTTOMDIRECTORY"
-logging "New Company directory is: $DATASET/$NEWCOUNTRY/$NEWCOMPANY"
+debugging "START cleanUp function"
 
-for XMLDIRECTORY in `ls -d $BOTTOMDIRECTORY/*`
-do
-	debugging "XMLDIRECTORY is: $XMLDIRECTORY"
-	logging "Moving XMLs from: $XMLDIRECTORY to: $DATASET/$NEWCOUNTRY/$NEWCOMPANY/"
+	if 
+	find -- "$XMLDIRECTORY" -prune -type d -empty | grep -q .
+	then
+	debugging "Original directory: $XMLDIRECTORY: is empty - deleting"
+	rm -rf $XMLDIRECTORY
+	else
+	logging "Original directory: $XMLDIRECTORY: is not empty - this will need attention"
+	fi 
+}
 
-	mv $XMLDIRECTORY/*xml $DATASET/$NEWCOUNTRY/$NEWCOMPANY/
+moveanyXMLs () {
 
-#    for XML in `ls $XMLDIRECTORY/*xml`
-#    do
-#        PROCESSEDXMLCOUNTER=`expr $PROCESSEDXMLCOUNTER + 1`
-#        debugging "$PROCESSEDXMLCOUNTER of $DATASETXMLCOUNT - Moving $XML to $DATASET/$NEWCOUNTRY/$NEWCOMPANY"
-#        mv -n "$XML" "$DATASET/$NEWCOUNTRY/$NEWCOMPANY/"
-#    done
+debugging "moveanyXMLs function"
 
-done
+debugging "Bottom Path is: $BOTTOMDIRECTORY"
+debugging "New Company directory is: $DATASET/$NEWCOUNTRY/$NEWCOMPANY"
+
+
+## If there are XML folders under the BOTTOMDIRECTORY, create the NewCompany Folder and move the XMLs into it
+
+ls "$BOTTOMDIRECTORY" | grep 20[0-2][0-9]-[0-9][0-9] &>/dev/null
+
+	if [ $? -eq 0 ]
+ 	then
+
+	for XMLDIRECTORY in `ls -d $BOTTOMDIRECTORY/* | grep 20[0-2][0-9]-[0-9][0-9]`
+	do
+		debugging "XMLDIRECTORY is: $XMLDIRECTORY"
+		debugging "Moving XMLs from: $XMLDIRECTORY to: $DATASET/$NEWCOUNTRY/$NEWCOMPANY/"
+
+		find "$XMLDIRECTORY" -type f -name "*xml" -print0 | xargs -0 -I {} mv {} "$DATASET/$NEWCOUNTRY/$NEWCOMPANY"/ 
+
+		cleanUpXMLdir
+	done
+
+	else
+		debugging "There are no XMLs to process"
+
+	fi
 }
 
 find_subsubsubcompany () {
 
 ##Look for any SubSubSubCompanies in a dataset
 
-ls "$DATASET/$COUNTRY/$COMPANY/$SUBCOMPANY/$SUBSUBCOMPANY" | grep -v 20[0-9][0-9]-[0-9][0-9] &>/dev/null
+ls "$DATASET/$COUNTRY/$COMPANY/$SUBCOMPANY/$SUBSUBCOMPANY/" | grep -v 20[0-9][0-9]-[0-9][0-9] &>/dev/null
 
 if [ $? -eq 0 ]
 then
@@ -72,12 +94,12 @@ then
 ## Create an array of SubSubSubCompanies
 ## And iterate through the SubSubSubCompanies within each Company
 
-	SUBSUBSUBCOMPANIES=`ls $DATASET/"$COUNTRY"/"$COMPANY"/"$SUBCOMPANY"/$SUBSUBCOMPANY 2>/dev/null`
+	SUBSUBSUBCOMPANIES=`ls $DATASET/"$COUNTRY"/"$COMPANY"/"$SUBCOMPANY"/$SUBSUBCOMPANY | grep -v 20[0-9][0-9]-[0-9][0-9] 2>/dev/null`
 
 	for SUBSUBSUBCOMPANY in `echo "$SUBSUBSUBCOMPANIES"`
 	do
 		FULLSUBSUBSUBCOMPANYPATH="$DATASET/$COUNTRY/$COMPANY/$SUBCOMPANY/$SUBSUBCOMPANY/$SUBSUBSUBCOMPANY"
-		SUBSUBSUBCOMPANYXMLCOUNT=`find "$DATASET/$COUNTRY/$COMPANY/$SUBCOMPANY/$SUBSUBCOMPANY"/$SUBSUBSUBCOMPANY -name "*.xml" -print0 | xargs -0 ls | wc -l | sed s/" "//g`
+		SUBSUBSUBCOMPANYXMLCOUNT=`find "$DATASET/$COUNTRY/$COMPANY/$SUBCOMPANY/$SUBSUBCOMPANY/$SUBSUBSUBCOMPANY"/20[0-2][0-9]-[0-9]0-9]/ -name "*.xml" -print0 | xargs -0 ls | wc -l | sed s/" "//g`
 
 		debugging "SubSubSubCompany is: $SUBSUBSUBCOMPANY"
 		debugging "Full SubSubSubCompany Path is now: $FULLSUBSUBSUBCOMPANYPATH"
@@ -87,7 +109,7 @@ then
 	debugging "NewCompany is: $NEWCOMPANY"
 	mkdir "$DATASET/$NEWCOUNTRY/$NEWCOMPANY"
 	BOTTOMDIRECTORY="${FULLSUBSUBSUBCOMPANYPATH}"
-	move_XMLs
+	moveanyXMLs
 
 	done
 
@@ -97,7 +119,7 @@ else
 	debugging "I would create Company Directory: $DATASET/$NEWCOUNTRY/$NEWCOMPANY"
 	mkdir "$DATASET/$NEWCOUNTRY/$NEWCOMPANY"
 	BOTTOMDIRECTORY="${FULLSUBSUBCOMPANYPATH}"
-	move_XMLs
+	moveanyXMLs
 fi
 
 ##End of --find_subsubsubcompany--
@@ -107,7 +129,7 @@ find_subsubcompany () {
 
 ##Look for any SubSubCompanies in a dataset
 
-ls "$DATASET/$COUNTRY/$COMPANY/$SUBCOMPANY" | grep -v 20[0-9][0-9]-[0-9][0-9] &>/dev/null
+ls "$DATASET/$COUNTRY/$COMPANY/$SUBCOMPANY/" | grep -v 20[0-9][0-9]-[0-9][0-9] &>/dev/null
 
 if [ $? -eq 0 ]
 then
@@ -116,12 +138,12 @@ then
 ## Create an array of SubSubCompanies
 ## And iterate through the SubSubCompanies within each Company
 
-	SUBSUBCOMPANIES=`ls $DATASET/"$COUNTRY"/"$COMPANY"/"$SUBCOMPANY" 2>/dev/null`
+	SUBSUBCOMPANIES=`ls $DATASET/"$COUNTRY"/"$COMPANY"/"$SUBCOMPANY" | grep -v 20[0-9][0-9]-[0-9][0-9] 2>/dev/null`
 
 	for SUBSUBCOMPANY in `echo "$SUBSUBCOMPANIES"`
 	do
 		FULLSUBSUBCOMPANYPATH="$DATASET/$COUNTRY/$COMPANY/$SUBCOMPANY/$SUBSUBCOMPANY"
-		SUBSUBCOMPANYXMLCOUNT=`find "$DATASET/$COUNTRY/$COMPANY/$SUBCOMPANY/$SUBSUBCOMPANY" -name "*.xml" -print0 | xargs -0 ls | wc -l | sed s/" "//g`
+		SUBSUBCOMPANYXMLCOUNT=`find "$DATASET/$COUNTRY/$COMPANY/$SUBCOMPANY/$SUBSUBCOMPANY"/20[0-2][0-9]-[0-9][0-9] -name "*.xml" -print0 | xargs -0 ls | wc -l | sed s/" "//g`
 
 		debugging "SubSubCompany is: $SUBSUBCOMPANY"
 		debugging "Full SubSubCompany Path is now: $FULLSUBSUBCOMPANYPATH"
@@ -137,7 +159,7 @@ else
 	debugging "I would create Company Directory: $DATASET/$NEWCOUNTRY/$NEWCOMPANY"
 	mkdir "$DATASET/$NEWCOUNTRY/$NEWCOMPANY"
 	BOTTOMDIRECTORY="${FULLSUBCOMPANYPATH}"
-	move_XMLs
+	moveanyXMLs
 fi
 
 ##End of --find_subsubcompany--
@@ -148,7 +170,7 @@ find_subcompany () {
 
 ##Look for any SubCompanies in a dataset
 
-ls "$DATASET/$COUNTRY/$COMPANY" | grep -v 20[0-9][0-9]-[0-9][0-9] &>/dev/null
+ls "$DATASET/$COUNTRY/$COMPANY/" | grep -v 20[0-9][0-9]-[0-9][0-9] &>/dev/null
 
 if [ $? -eq 0 ]
 then
@@ -157,12 +179,13 @@ then
 ## Create an array of SubCompanies
 ## And iterate through the SubCompanies within each Company
 
-	SUBCOMPANIES=`ls $DATASET/"$COUNTRY"/"$COMPANY" 2>/dev/null`
+	SUBCOMPANIES=`ls $DATASET/"$COUNTRY"/"$COMPANY" | grep -v 20[0-9][0-9]-[0-9][0-9] 2>/dev/null`
 
 	for SUBCOMPANY in `echo "$SUBCOMPANIES"`
 	do
 		FULLSUBCOMPANYPATH="$DATASET/$COUNTRY/$COMPANY/$SUBCOMPANY"
-		SUBCOMPANYXMLCOUNT=`find "$DATASET/$COUNTRY/$COMPANY/$SUBCOMPANY" -name "*.xml" -print0 | xargs -0 ls | wc -l | sed s/" "//g`
+
+		SUBCOMPANYXMLCOUNT=`find "$FULLSUBCOMPANYPATH"/20[0-2][0-9]-[0-9][0-9] -type f -name "*.xml" -print0 | xargs -0 ls | wc -l | sed s/" "//g`
 
 		debugging "SubCompany is: $SUBCOMPANY"
 		debugging "Full SubCompany Path is now: $FULLSUBCOMPANYPATH"
@@ -178,7 +201,7 @@ else
 	debugging "I would create Company Directory: $DATASET/$NEWCOUNTRY/$NEWCOMPANY"
 	mkdir "$DATASET/$NEWCOUNTRY/$NEWCOMPANY"
 	BOTTOMDIRECTORY="${FULLCOMPANYPATH}"
-	move_XMLs
+	moveanyXMLs
 fi
 
 ##End of --find_subcompany--
@@ -190,7 +213,9 @@ find_company () {
 
 ##Look for any Companies in a dataset
 
-ls "$DATASET/$COUNTRY" | grep -v 20[0-9][0-9]-[0-9][0-9] &>/dev/null
+debugging "START - find_company function"
+
+ls "$DATASET/$COUNTRY/" | grep -v 20[0-9][0-9]-[0-9][0-9] &>/dev/null
 
 if [ $? -eq 0 ]
 then
@@ -199,20 +224,26 @@ then
 ## Create an array of Companies
 ## And iterate through the Companies within each Country
 
-	COMPANIES=`ls $DATASET/"$COUNTRY" 2>/dev/null`
+	COMPANIES=`ls $DATASET/"$COUNTRY" | grep -v 20[0-9][0-9]-[0-9][0-9] 2>/dev/null`
 
 	for COMPANY in `echo "$COMPANIES"`
 	do
 		FULLCOMPANYPATH="$DATASET/$COUNTRY/$COMPANY"
-		COMPANYXMLCOUNT=`find "$DATASET/$COUNTRY/$COMPANY" -name "*.xml" -print0 | xargs -0 ls | wc -l | sed s/" "//g`
+		COMPANYXMLCOUNT=`find "$DATASET/$COUNTRY/$COMPANY"/20[0-2][0-9]-[0-9][0-9] -name "*.xml" -print0 | xargs -0 ls | wc -l | sed s/" "//g`
 
 		debugging "Company is: $COMPANY"
 		debugging "Full Company Path is: $FULLCOMPANYPATH"
-		debugging "XML count for Company: $COMPANY  is: $COMPANYXMLCOUNT"
+		logging "XML count for Company: $COMPANY  is: $COMPANYXMLCOUNT"
 
-	 	if [ ! -d "$DATASET/partition_country=$COUNTRY/partition_company=$COMPANY" ]
+		if [ $COMPANYXMLCOUNT -gt 0 ]
 		then
-		NEWCOMPANY="partition_company=$COMPANY"
+			if [ ! -d "$DATASET/partition_country=$COUNTRY/partition_company=$COMPANY" ]
+			then
+			NEWCOMPANY="partition_company=$COMPANY"
+			mkdir "$DATASET/partition_country=$COUNTRY/$NEWCOMPANY"
+			BOTTOMDIRECTORY="${FULLCOMPANYPATH}"
+			moveanyXMLs
+			fi
 		fi
 
 	find_subcompany
